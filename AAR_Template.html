@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flight Debrief AAR</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0a0a14; color: #fff; font-family: 'Barlow', sans-serif; padding: 20px 16px 60px; min-height: 100vh; }
+
+  .header-sub { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 4px; }
+  .header-title { font-size: 28px; font-family: 'Barlow Condensed', sans-serif; font-weight: 800; letter-spacing: 1px; }
+  .header-score { margin-top: 8px; font-size: 13px; color: #888; }
+  .score-val { font-weight: 700; font-size: 16px; }
+
+  .meta-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; margin-bottom: 16px; margin-top: 24px; }
+  .field-label { font-size: 11px; color: #8899aa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; font-weight: 600; }
+  .field-input {
+    width: 100%; height: 38px; background: #1a1a2e; border: 1px solid #3a3a55;
+    border-radius: 8px; color: #e0e8ff; padding: 0 11px; font-size: 13px;
+    font-family: 'Barlow', sans-serif; outline: none;
+    -webkit-appearance: none; appearance: none;
+    display: block; min-width: 0; max-width: 100%;
+    line-height: 38px; vertical-align: middle;
+  }
+  .field-input:focus { border-color: #5566aa; }
+  .safety-box {
+    width: 100%; height: 38px; background: #1a1a2e; border-radius: 8px;
+    padding: 0 11px; font-size: 13px; font-weight: 700;
+    display: flex; align-items: center;
+  }
+
+  .intentions-wrap { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+  .field-textarea {
+    width: 100%; min-height: 58px; background: #1a1a2e; border: 1px solid #3a3a55;
+    border-radius: 8px; color: #e0e8ff; padding: 9px 11px; font-size: 13px;
+    font-family: 'Barlow', sans-serif; resize: vertical; outline: none;
+  }
+  .field-textarea:focus { border-color: #5566aa; }
+
+  .phase-label { font-size: 13px; font-weight: 700; color: #888; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+  .section-wrap { margin-bottom: 12px; border-radius: 10px; overflow: hidden; border: 1px solid #2a2a3a; background: #13131f; }
+  .section-header {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; background: transparent; border: none; cursor: pointer; color: #fff;
+  }
+  .section-title { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; font-family: 'Barlow', sans-serif; }
+  .section-icon { font-size: 18px; }
+  .section-right { display: flex; align-items: center; gap: 10px; }
+  .section-avg { font-size: 13px; font-weight: 700; background: #1e1e2e; padding: 2px 8px; border-radius: 20px; }
+  .section-chevron { color: #555; font-size: 18px; transition: transform 0.2s; display: inline-block; }
+  .section-body { padding: 0 16px 16px; display: none; }
+  .section-body.open { display: block; }
+
+  .item-row { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #1e1e2e; }
+  .item-row:last-of-type { border-bottom: none; }
+  .item-name { font-size: 13px; color: #aaa; margin-bottom: 4px; }
+
+  .rating-bar { display: flex; gap: 6px; margin-top: 6px; }
+  .rating-btn {
+    height: 30px; padding: 0 10px; border-radius: 6px; border: 2px solid transparent;
+    background: #2a2a3a; color: #666; font-weight: 700; font-size: 12px;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap; font-family: 'Barlow', sans-serif;
+  }
+  .rating-btn.active { border-color: white; color: #fff; }
+
+  .notes-label { font-size: 12px; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; margin-top: 12px; }
+  .notes-textarea {
+    width: 100%; min-height: 70px; background: #0e0e1a; border: 1px solid #2a2a3a;
+    border-radius: 8px; color: #ccc; padding: 10px; font-size: 13px;
+    font-family: 'Barlow', sans-serif; resize: vertical; outline: none;
+  }
+  .notes-textarea:focus { border-color: #5566aa; }
+
+  .grade-bar { margin-top: 14px; display: flex; align-items: center; gap: 14px; padding: 8px 12px; background: #13131f; border-radius: 8px; border: 1px solid #1e1e2e; }
+  .grade-label { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0; }
+  .grade-item { display: flex; align-items: center; gap: 5px; }
+  .grade-badge { width: 17px; height: 17px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 10px; color: #fff; flex-shrink: 0; }
+  .grade-text { font-size: 10px; color: #666; }
+
+  #export-btn {
+    margin-top: 20px; width: 100%; padding: 14px; background: #1e3a5f;
+    border: 1px solid #2a5a8f; border-radius: 10px; color: #7ec8ff;
+    font-family: 'Barlow', sans-serif; font-size: 14px; font-weight: 700;
+    cursor: pointer; letter-spacing: 1px; text-transform: uppercase;
+    transition: background 0.2s;
+  }
+  #export-btn:hover { background: #254a72; }
+  #export-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div id="printable">
+  <div class="header-sub">After Action Review</div>
+  <div class="header-title">FLIGHT DEBRIEF</div>
+  <div class="header-score" id="overall-score-row" style="display:none">
+    Overall score: <span class="score-val" id="overall-score-val"></span> / 3
+  </div>
+
+  <div class="meta-grid">
+    <div>
+      <div class="field-label">Date</div>
+      <input class="field-input" type="date" id="meta-date">
+    </div>
+    <div>
+      <div class="field-label">Route</div>
+      <input class="field-input" type="text" id="meta-route" placeholder="e.g. LIMP – LIME">
+    </div>
+    <div>
+      <div class="field-label">Aircraft</div>
+      <input class="field-input" type="text" id="meta-aircraft" placeholder="e.g. PA-28">
+    </div>
+    <div>
+      <div class="field-label">Safety Assured</div>
+      <div class="safety-box" id="safety-box" style="border:1px solid #3a3a55; color:#555;">—</div>
+    </div>
+  </div>
+
+  <div class="intentions-wrap">
+    <div>
+      <div class="field-label">Flight Intentions</div>
+      <textarea class="field-textarea" id="intentions" placeholder="What was planned for this flight..."></textarea>
+    </div>
+    <div>
+      <div class="field-label">Flight Outcome</div>
+      <textarea class="field-textarea" id="outcome" placeholder="What actually happened..."></textarea>
+    </div>
+  </div>
+
+  <div class="phase-label">Phase Assessment</div>
+  <div id="sections-container"></div>
+
+  <div class="grade-bar">
+    <span class="grade-label">Grades</span>
+    <div class="grade-item"><span class="grade-badge" style="background:#22c55e">3</span><span class="grade-text">Smooth</span></div>
+    <div class="grade-item"><span class="grade-badge" style="background:#eab308">2</span><span class="grade-text">Errors</span></div>
+    <div class="grade-item"><span class="grade-badge" style="background:#ef4444">1</span><span class="grade-text">Unsafe</span></div>
+  </div>
+</div>
+
+<button id="export-btn" onclick="exportPDF()">⬇ Export PDF</button>
+
+<script>
+const sections = [
+  { id: "preflight", label: "Pre-Flight", icon: "📋", items: ["Meterology Briefing", "NOTAMs Check", "MAB & Fuel", "ATC Flight Plan"] },
+  { id: "takeoff",   label: "Takeoff & Climb", icon: "🛫", items: ["ATS Coordination", "Procedures Adherence", "Emergencies Rehearsal", "Takeoff Technique", "Initial Climb"] },
+  { id: "cruise",    label: "Cruise", icon: "✈️", items: ["ATS Coordination", "Procedures Adherence", "Emergencies Rehearsal", "Navigation Accuracy", "System Monitoring", "Manoeuvres Technique"] },
+  { id: "approach",  label: "Approach & Landing", icon: "🛬", items: ["ATS Coordination", "Procedures Adherence", "Emergencies Rehearsal", "Descent", "Approach Technique", "Stabilised Approach Criteria", "Landing Technique"] },
+  { id: "general",   label: "General Assessment", icon: "🧠", items: ["Crew Coordination", "Workload Management", "Situational Awareness", "Decision Making"] },
+];
+
+const ratingColors = { 0: "#555", 1: "#ef4444", 2: "#eab308", 3: "#22c55e" };
+const ratingLabels = { 0: "N/A", 1: "1", 2: "2", 3: "3" };
+
+const state = {};
+sections.forEach(s => { state[s.id] = { ratings: {}, notes: "" }; });
+
+function scoreColor(v) {
+  if (v >= 2.5) return "#22c55e";
+  if (v >= 1.5) return "#eab308";
+  return "#ef4444";
+}
+
+function updateOverall() {
+  const allVals = sections.flatMap(s => Object.values(state[s.id].ratings).filter(v => v > 0));
+  const row = document.getElementById("overall-score-row");
+  const val = document.getElementById("overall-score-val");
+  if (allVals.length === 0) { row.style.display = "none"; return; }
+  const avg = (allVals.reduce((a,b) => a+b, 0) / allVals.length).toFixed(1);
+  val.textContent = avg;
+  val.style.color = scoreColor(parseFloat(avg));
+  row.style.display = "block";
+
+  const hasOne = allVals.some(v => v === 1);
+  const box = document.getElementById("safety-box");
+  if (!hasOne) {
+    box.textContent = "Yes"; box.style.color = "#22c55e"; box.style.borderColor = "#22c55e";
+  } else {
+    box.textContent = "No"; box.style.color = "#ef4444"; box.style.borderColor = "#ef4444";
+  }
+}
+
+function updateSectionAvg(sectionId) {
+  const vals = Object.values(state[sectionId].ratings).filter(v => v > 0);
+  const avgEl = document.getElementById("avg-" + sectionId);
+  if (vals.length === 0) { avgEl.style.display = "none"; return; }
+  const avg = (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(1);
+  avgEl.textContent = avg;
+  avgEl.style.color = scoreColor(parseFloat(avg));
+  avgEl.style.display = "inline";
+}
+
+function setRating(sectionId, itemIdx, value) {
+  state[sectionId].ratings[itemIdx] = value;
+  const bar = document.getElementById(`bar-${sectionId}-${itemIdx}`);
+  bar.querySelectorAll(".rating-btn").forEach(btn => {
+    const v = parseInt(btn.dataset.value);
+    if (v === value) { btn.classList.add("active"); btn.style.background = ratingColors[v]; }
+    else { btn.classList.remove("active"); btn.style.background = "#2a2a3a"; }
+  });
+  updateSectionAvg(sectionId);
+  updateOverall();
+}
+
+function buildSections() {
+  const container = document.getElementById("sections-container");
+  sections.forEach(s => {
+    const wrap = document.createElement("div");
+    wrap.className = "section-wrap";
+
+    const header = document.createElement("button");
+    header.className = "section-header";
+    header.innerHTML = `
+      <span class="section-title"><span class="section-icon">${s.icon}</span>${s.label}</span>
+      <span class="section-right">
+        <span class="section-avg" id="avg-${s.id}" style="display:none"></span>
+        <span class="section-chevron" id="chev-${s.id}">▾</span>
+      </span>`;
+
+    const body = document.createElement("div");
+    body.className = "section-body";
+    body.id = "body-" + s.id;
+
+    s.items.forEach((item, i) => {
+      const row = document.createElement("div");
+      row.className = "item-row";
+      const name = document.createElement("div");
+      name.className = "item-name";
+      name.textContent = item;
+      row.appendChild(name);
+      const bar = document.createElement("div");
+      bar.className = "rating-bar";
+      bar.id = `bar-${s.id}-${i}`;
+      [0,1,2,3].forEach(v => {
+        const btn = document.createElement("button");
+        btn.className = "rating-btn";
+        btn.dataset.value = v;
+        btn.textContent = ratingLabels[v];
+        btn.onclick = () => setRating(s.id, i, v);
+        bar.appendChild(btn);
+      });
+      row.appendChild(bar);
+      body.appendChild(row);
+    });
+
+    const notesLabel = document.createElement("div");
+    notesLabel.className = "notes-label";
+    notesLabel.textContent = "Notes";
+    body.appendChild(notesLabel);
+
+    const notes = document.createElement("textarea");
+    notes.className = "notes-textarea";
+    notes.id = "notes-" + s.id;
+    notes.placeholder = "What went well / wrong / to improve...";
+    notes.oninput = () => { state[s.id].notes = notes.value; };
+    body.appendChild(notes);
+
+    header.onclick = () => {
+      const isOpen = body.classList.toggle("open");
+      document.getElementById("chev-" + s.id).style.transform = isOpen ? "rotate(180deg)" : "none";
+    };
+
+    wrap.appendChild(header);
+    wrap.appendChild(body);
+    container.appendChild(wrap);
+  });
+}
+
+async function exportPDF() {
+  const btn = document.getElementById("export-btn");
+  btn.disabled = true;
+  btn.textContent = "Generating PDF...";
+
+  // Open all sections temporarily
+  const closedSections = [];
+  sections.forEach(s => {
+    const body = document.getElementById("body-" + s.id);
+    if (!body.classList.contains("open")) {
+      body.classList.add("open");
+      closedSections.push(s.id);
+    }
+  });
+
+  await new Promise(r => setTimeout(r, 100));
+
+  const el = document.getElementById("printable");
+  const canvas = await html2canvas(el, {
+    backgroundColor: "#0a0a14",
+    scale: 2,
+    useCORS: true,
+    logging: false,
+  });
+
+  // Restore closed sections
+  closedSections.forEach(id => {
+    document.getElementById("body-" + id).classList.remove("open");
+  });
+
+  const imgData = canvas.toDataURL("image/png");
+  const { jsPDF } = window.jspdf;
+
+  // Single continuous page: width = A4 width, height = proportional
+  const pdfWidth = 210; // mm (A4 width)
+  const pxToMm = pdfWidth / canvas.width;
+  const pdfHeight = canvas.height * pxToMm;
+
+  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [pdfWidth, pdfHeight] });
+  pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+
+  const date = document.getElementById("meta-date").value || "debrief";
+  const route = document.getElementById("meta-route").value || "";
+  const filename = `AAR_${date}${route ? "_" + route.replace(/\s/g,"") : ""}.pdf`;
+  pdf.save(filename);
+
+  btn.disabled = false;
+  btn.textContent = "⬇ Export PDF";
+}
+
+document.getElementById("meta-date").value = new Date().toISOString().split("T")[0];
+buildSections();
+</script>
+</body>
+</html>
